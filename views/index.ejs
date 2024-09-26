@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/styles.css">
+    <title>SPOTIFY</title>
+    <style>
+        /* Center the container */
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .song {
+            text-align: center;
+        }
+
+        .song-list {
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center align the list */
+        }
+
+        .song-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* Space between song info and heart */
+            margin-bottom: 10px;
+            padding: 10px;
+            width: 300px; /* Fixed width for better centering */
+            cursor: pointer;
+            border-radius: 10px;
+            transition: background-color 0.3s ease; /* Smooth transition for hover */
+        }
+
+        .song-list-item img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            margin-right: 10px;
+        }
+
+        .song-list-item h3 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        /* Hover effect */
+        .song-list-item:hover {
+            background-color: #f0f0f0; /* Light gray background on hover */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+
+        /* Highlight currently playing song */
+        .current-song {
+            font-weight: bold;
+            background-color: #dcdcdc;
+        }
+
+        .favorite-icon {
+            width: 24px; /* Set width for the heart icon */
+            height: 24px; /* Set height for the heart icon */
+            cursor: pointer;
+            transition: fill 0.3s ease; /* Smooth transition for fill color */
+        }
+
+        .favorite-icon.active {
+            fill: green; /* Change heart color to green when active */
+        }
+
+        /* Centering the player controls */
+        .player-controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .player-controls button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        .favorites-section {
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .favorites-section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .favorites-list {
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center align the favorites list */
+        }
+
+        .favorite-song-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* Space between song info and heart */
+            margin-bottom: 10px;
+            padding: 10px;
+            width: 300px; /* Fixed width for better centering */
+            border-radius: 10px;
+            background-color: #f9f9f9;
+            color: black; /* Set font color for favorites to black */
+        }
+
+        .favorite-song-item img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            margin-right: 10px;
+        }
+
+        /* Heart icon SVG styling */
+        .heart-svg {
+            fill: gray; /* Default color for the heart */
+            transition: fill 0.3s ease; /* Smooth transition for fill color */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Spotify</h1>
+        <a href="/upload"></a>
+
+        <!-- Current playing song -->
+        <div class="songs-container">
+            <% songs.forEach((song, index) => { %>
+                <div class="song" data-index="<%= index %>" style="display: none;">
+                    <div class="cover-container">
+                        <img src="/<%= song.cover_path.replace('uploads/', '') %>" alt="Cover Image" class="cover-image">
+                    </div>
+                    
+                    <div class="song-info">
+                        <h2><%= song.name %> - <%= song.artist %></h2>
+                        <audio controls class="audio-player" id="audio-<%= index %>">
+                            <source src="/<%= song.file_path.replace('uploads/', '') %>" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+
+        <!-- Player controls -->
+        <div class="player-controls">
+            <button id="prevButton">Previous</button>
+            <button id="nextButton">Next</button>
+        </div>
+
+        <!-- List of uploaded songs -->
+        <div class="song-list">
+            <% songs.forEach((song, index) => { %>
+                <div class="song-list-item" data-index="<%= index %>">
+                    <div style="display: flex; align-items: center;">
+                        <img src="/<%= song.cover_path.replace('uploads/', '') %>" alt="Cover Image">
+                        <h3><%= song.name %> - <%= song.artist %></h3>
+                    </div>
+                    <!-- Heart icon SVG -->
+                    <svg class="favorite-icon" data-index="<%= index %>" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                        <path class="heart-svg" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                </div>
+            <% }) %>
+        </div>
+
+        <!-- Favorites section -->
+        <div class="favorites-section">
+            <h2 style="color: #1DB954;">Liked Songs</h2>
+            <div class="favorites-list" id="favoritesList"></div>
+        </div>
+    </div>
+
+    <script>
+        const songs = <%- JSON.stringify(songs) %>;
+        let currentSongIndex = 0;
+        let favorites = [];
+
+        function showCurrentSong() {
+            const songElements = document.querySelectorAll('.song');
+            songElements.forEach((songElement, index) => {
+                songElement.style.display = index === currentSongIndex ? 'block' : 'none';
+            });
+
+            // Highlight the current song in the song list
+            highlightCurrentSong();
+        }
+
+        function playCurrentSong() {
+            const audioElements = document.querySelectorAll('audio');
+            audioElements.forEach((audio, index) => {
+                if (index === currentSongIndex) {
+                    audio.play();
+                } else {
+                    audio.pause();
+                }
+            });
+            showCurrentSong();
+        }
+
+        function highlightCurrentSong() {
+            // Remove 'current-song' class from all items first
+            document.querySelectorAll('.song-list-item').forEach((item) => {
+                item.classList.remove('current-song');
+            });
+
+            // Add 'current-song' class to the currently playing song
+            document.querySelector(`.song-list-item[data-index="${currentSongIndex}"]`).classList.add('current-song');
+        }
+
+        function toggleFavorite(index) {
+            const favoriteIndex = favorites.indexOf(index);
+            const heartIcon = document.querySelector(`.favorite-icon[data-index="${index}"]`);
+
+            if (favoriteIndex === -1) {
+                favorites.push(index); // Add to favorites if not already present
+                heartIcon.classList.add('active');
+                heartIcon.querySelector('.heart-svg').setAttribute('fill', 'green'); // Set fill color to green
+            } else {
+                favorites.splice(favoriteIndex, 1); // Remove from favorites if already present
+                heartIcon.classList.remove('active');
+                heartIcon.querySelector('.heart-svg').setAttribute('fill', 'gray'); // Reset fill color to gray
+            }
+
+            updateFavoritesList();
+        }
+
+        function updateFavoritesList() {
+            const favoritesList = document.getElementById('favoritesList');
+            favoritesList.innerHTML = ''; // Clear the list before updating
+
+            favorites.forEach((index) => {
+                const song = songs[index];
+                const favoriteItem = `
+                    <div class="favorite-song-item">
+                        <div style="display: flex; align-items: center;">
+                            <img src="/${song.cover_path.replace('uploads/', '')}" alt="Cover Image">
+                            <h3>${song.name} - ${song.artist}</h3>
+                        </div>
+                    </div>
+                `;
+                favoritesList.insertAdjacentHTML('beforeend', favoriteItem);
+            });
+        }
+
+        document.getElementById('prevButton').addEventListener('click', () => {
+            currentSongIndex = (currentSongIndex > 0) ? currentSongIndex - 1 : songs.length - 1; // Loop back to last song if at the beginning
+            playCurrentSong();
+        });
+
+        document.getElementById('nextButton').addEventListener('click', () => {
+            currentSongIndex = (currentSongIndex < songs.length - 1) ? currentSongIndex + 1 : 0; // Loop back to first song if at the end
+            playCurrentSong();
+        });
+
+        // Click event for song list items
+        document.querySelectorAll('.song-list-item').forEach(item => {
+            item.addEventListener('click', () => {
+                currentSongIndex = parseInt(item.getAttribute('data-index'));
+                playCurrentSong();
+            });
+        });
+
+        // Click event for heart icons
+        document.querySelectorAll('.favorite-icon').forEach(icon => {
+            icon.addEventListener('click', (event) => {
+                event.stopPropagation(); // Prevent song play when clicking the heart
+                const index = parseInt(icon.getAttribute('data-index'));
+                toggleFavorite(index);
+            });
+        });
+
+        window.onload = () => {
+            showCurrentSong();
+            playCurrentSong();
+        };
+    </script>
+</body>
+</html>
